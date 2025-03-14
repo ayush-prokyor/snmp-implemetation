@@ -1,1103 +1,1178 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SNMP Monitoring Dashboard</title>
     <style>
-        :root {
-            --primary: #2563eb;
-            --primary-hover: #1d4ed8;
-            --success: #10b981;
-            --danger: #ef4444;
-            --card-bg: #ffffff;
-            --border: #e5e7eb;
-            --text: #1f2937;
-            --text-light: #6b7280;
-            --bg-light: #f9fafb;
-            --result-bg: #f3f4f6;
-        }
+      :root {
+        --primary: #2563eb;
+        --primary-hover: #1d4ed8;
+        --success: #10b981;
+        --danger: #ef4444;
+        --card-bg: #ffffff;
+        --border: #e5e7eb;
+        --text: #1f2937;
+        --text-light: #6b7280;
+        --bg-light: #f9fafb;
+        --result-bg: #f3f4f6;
+      }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-            line-height: 1.6;
-            color: var(--text);
-            background-color: var(--bg-light);
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+        line-height: 1.6;
+        color: var(--text);
+        background-color: var(--bg-light);
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+      }
 
-        header {
-            margin-bottom: 30px;
-        }
+      header {
+        margin-bottom: 30px;
+      }
 
-        h1, h2, h3 {
-            margin-bottom: 20px;
-            font-weight: 600;
-            color: var(--text);
-        }
+      h1,
+      h2,
+      h3 {
+        margin-bottom: 20px;
+        font-weight: 600;
+        color: var(--text);
+      }
 
+      .dashboard-grid {
+        display: grid;
+        grid-template-columns: 300px 1fr;
+        gap: 20px;
+      }
+
+      .card {
+        background: var(--card-bg);
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        padding: 20px;
+        margin-bottom: 20px;
+        border: 1px solid var(--border);
+      }
+
+      .form-group {
+        margin-bottom: 16px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 500;
+        color: var(--text);
+      }
+
+      input,
+      select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        font-size: 14px;
+        transition: border-color 0.15s ease-in-out;
+      }
+
+      input:focus,
+      select:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+      }
+
+      button {
+        background-color: var(--primary);
+        color: white;
+        padding: 10px 16px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: background-color 0.15s ease-in-out;
+        font-size: 14px;
+      }
+
+      button:hover {
+        background-color: var(--primary-hover);
+      }
+
+      button.secondary {
+        background-color: white;
+        color: var(--primary);
+        border: 1px solid var(--primary);
+      }
+
+      button.secondary:hover {
+        background-color: rgba(37, 99, 235, 0.05);
+      }
+
+      button.success {
+        background-color: var(--success);
+      }
+
+      button.danger {
+        background-color: var(--danger);
+      }
+
+      pre {
+        background-color: var(--result-bg);
+        padding: 16px;
+        border-radius: 6px;
+        overflow-x: auto;
+        font-size: 14px;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        max-height: 400px;
+        overflow-y: auto;
+      }
+
+      .tabs {
+        display: flex;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 20px;
+        overflow-x: auto;
+      }
+
+      .tab {
+        padding: 12px 24px;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        margin-right: 10px;
+        font-weight: 500;
+        transition: all 0.15s ease-in-out;
+        white-space: nowrap;
+      }
+
+      .tab.active {
+        color: var(--primary);
+        border-bottom: 2px solid var(--primary);
+      }
+
+      .tab:hover:not(.active) {
+        color: var(--primary);
+        border-bottom: 2px solid rgba(37, 99, 235, 0.2);
+      }
+
+      .tab-content {
+        display: none;
+      }
+
+      .tab-content.active {
+        display: block;
+      }
+
+      .status-indicator {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 8px;
+      }
+
+      .status-on {
+        background-color: var(--success);
+        box-shadow: 0 0 6px var(--success);
+      }
+
+      .status-off {
+        background-color: var(--danger);
+      }
+
+      .polling-controls {
+        display: flex;
+        align-items: center;
+        margin-bottom: 20px;
+        gap: 12px;
+      }
+
+      .polling-result {
+        margin-bottom: 16px;
+        padding: 16px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background-color: var(--card-bg);
+      }
+
+      .polling-timestamp {
+        color: var(--text-light);
+        margin-bottom: 8px;
+        font-size: 0.9em;
+      }
+
+      .poll-record {
+        padding: 12px 0;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .poll-record:last-child {
+        border-bottom: none;
+      }
+
+      .result-container {
+        position: relative;
+      }
+
+      .copy-btn {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        padding: 4px 8px;
+        font-size: 12px;
+        background-color: rgba(255, 255, 255, 0.8);
+        color: var(--text);
+        border: 1px solid var(--border);
+      }
+
+      .copy-btn:hover {
+        background-color: white;
+      }
+
+      .trap-result {
+        margin-bottom: 16px;
+        padding: 16px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background-color: var(--card-bg);
+      }
+
+      .trap-timestamp {
+        color: var(--text-light);
+        margin-bottom: 8px;
+        font-size: 0.9em;
+      }
+
+      .trap-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .trap-source {
+        font-weight: 500;
+      }
+
+      .trap-version {
+        background-color: var(--primary);
+        color: white;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.8em;
+      }
+
+      .varbind-item {
+        padding: 8px 0;
+        border-bottom: 1px dashed var(--border);
+      }
+
+      .varbind-item:last-child {
+        border-bottom: none;
+      }
+
+      @media (max-width: 768px) {
         .dashboard-grid {
-            display: grid;
-            grid-template-columns: 300px 1fr;
-            gap: 20px;
-        }
-
-        .card {
-            background: var(--card-bg);
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            padding: 20px;
-            margin-bottom: 20px;
-            border: 1px solid var(--border);
-        }
-
-        .form-group {
-            margin-bottom: 16px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 6px;
-            font-weight: 500;
-            color: var(--text);
-        }
-
-        input, select {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            font-size: 14px;
-            transition: border-color 0.15s ease-in-out;
-        }
-
-        input:focus, select:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
-        }
-
-        button {
-            background-color: var(--primary);
-            color: white;
-            padding: 10px 16px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: background-color 0.15s ease-in-out;
-            font-size: 14px;
-        }
-
-        button:hover {
-            background-color: var(--primary-hover);
-        }
-
-        button.secondary {
-            background-color: white;
-            color: var(--primary);
-            border: 1px solid var(--primary);
-        }
-
-        button.secondary:hover {
-            background-color: rgba(37, 99, 235, 0.05);
-        }
-
-        button.success {
-            background-color: var(--success);
-        }
-
-        button.danger {
-            background-color: var(--danger);
-        }
-
-        pre {
-            background-color: var(--result-bg);
-            padding: 16px;
-            border-radius: 6px;
-            overflow-x: auto;
-            font-size: 14px;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            max-height: 400px;
-            overflow-y: auto;
-        }
-
-        .tabs {
-            display: flex;
-            border-bottom: 1px solid var(--border);
-            margin-bottom: 20px;
-            overflow-x: auto;
-        }
-
-        .tab {
-            padding: 12px 24px;
-            cursor: pointer;
-            border-bottom: 2px solid transparent;
-            margin-right: 10px;
-            font-weight: 500;
-            transition: all 0.15s ease-in-out;
-            white-space: nowrap;
-        }
-
-        .tab.active {
-            color: var(--primary);
-            border-bottom: 2px solid var(--primary);
-        }
-
-        .tab:hover:not(.active) {
-            color: var(--primary);
-            border-bottom: 2px solid rgba(37, 99, 235, 0.2);
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        .status-indicator {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            margin-right: 8px;
-        }
-
-        .status-on {
-            background-color: var(--success);
-            box-shadow: 0 0 6px var(--success);
-        }
-
-        .status-off {
-            background-color: var(--danger);
+          grid-template-columns: 1fr;
         }
 
         .polling-controls {
-            display: flex;
-            align-items: center;
-            margin-bottom: 20px;
-            gap: 12px;
+          flex-direction: column;
+          align-items: flex-start;
         }
 
-        .polling-result {
-            margin-bottom: 16px;
-            padding: 16px;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            background-color: var(--card-bg);
+        .polling-controls button {
+          margin-top: 8px;
         }
-
-        .polling-timestamp {
-            color: var(--text-light);
-            margin-bottom: 8px;
-            font-size: 0.9em;
-        }
-
-        .poll-record {
-            padding: 12px 0;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .poll-record:last-child {
-            border-bottom: none;
-        }
-
-        .result-container {
-            position: relative;
-        }
-
-        .copy-btn {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            padding: 4px 8px;
-            font-size: 12px;
-            background-color: rgba(255, 255, 255, 0.8);
-            color: var(--text);
-            border: 1px solid var(--border);
-        }
-
-        .copy-btn:hover {
-            background-color: white;
-        }
-
-        .trap-result {
-            margin-bottom: 16px;
-            padding: 16px;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            background-color: var(--card-bg);
-        }
-
-        .trap-timestamp {
-            color: var(--text-light);
-            margin-bottom: 8px;
-            font-size: 0.9em;
-        }
-
-        .trap-header {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .trap-source {
-            font-weight: 500;
-        }
-
-        .trap-version {
-            background-color: var(--primary);
-            color: white;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 0.8em;
-        }
-
-        .varbind-item {
-            padding: 8px 0;
-            border-bottom: 1px dashed var(--border);
-        }
-
-        .varbind-item:last-child {
-            border-bottom: none;
-        }
-        
-
-        @media (max-width: 768px) {
-            .dashboard-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .polling-controls {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            .polling-controls button {
-                margin-top: 8px;
-            }
-        }
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <header>
-        <h1>SNMP Monitoring Dashboard</h1>
+      <h1>SNMP Monitoring Dashboard</h1>
     </header>
 
     <div class="card">
-        <h2>SNMP Agent Configuration</h2>
-        <div class="form-group">
-            <label for="host">Host:</label>
-            <input type="text" id="host" value="127.0.0.1">
-        </div>
-        <div class="form-group">
-            <label for="port">Port:</label>
-            <input type="number" id="port" value="161">
-        </div>
-        <div class="form-group">
-            <label for="community">Community String:</label>
-            <input type="text" id="community" value="public">
-        </div>
-        <button onclick="saveConfig()">Save Configuration</button>
+      <h2>SNMP Agent Configuration</h2>
+      <div class="form-group">
+        <label for="host">Host:</label>
+        <input type="text" id="host" value="127.0.0.1" />
+      </div>
+      <div class="form-group">
+        <label for="port">Port:</label>
+        <input type="number" id="port" value="161" />
+      </div>
+      <div class="form-group">
+        <label for="community">Community String:</label>
+        <input type="text" id="community" value="public" />
+      </div>
+      <button onclick="saveConfig()">Save Configuration</button>
     </div>
-    
+
     <div class="tabs">
-        <div class="tab active" onclick="openTab(event, 'get-tab')">GET</div>
-        <div class="tab" onclick="openTab(event, 'set-tab')">SET</div>
-        <div class="tab" onclick="openTab(event, 'getbulk-tab')">GETBULK</div>
-        <div class="tab" onclick="openTab(event, 'walk-tab')">WALK</div>
-        <div class="tab" onclick="openTab(event, 'polling-tab')">POLLING</div>
-        <div class="tab" onclick="openTab(event, 'trap-tab')">TRAPS</div>
+      <div class="tab active" onclick="openTab(event, 'get-tab')">GET</div>
+      <div class="tab" onclick="openTab(event, 'set-tab')">SET</div>
+      <div class="tab" onclick="openTab(event, 'getbulk-tab')">GETBULK</div>
+      <div class="tab" onclick="openTab(event, 'walk-tab')">WALK</div>
+      <div class="tab" onclick="openTab(event, 'polling-tab')">POLLING</div>
+      <!-- <div class="tab" onclick="openTab(event, 'trap-tab')">TRAPS</div> -->
     </div>
-    
+
     <div id="get-tab" class="tab-content active">
-        <div class="card">
-            <h2>SNMP GET</h2>
-            <div class="form-group">
-                <label for="get-oids">OIDs (comma-separated):</label>
-                <input type="text" id="get-oids" value="1.3.6.1.2.1.1.1.0,1.3.6.1.2.1.1.5.0">
-            </div>
-            <button onclick="performGet()">Perform GET</button>
-            <h3>Result:</h3>
-            <div class="result-container">
-                <pre id="get-result"></pre>
-                <button class="copy-btn" onclick="copyToClipboard('get-result')">Copy</button>
-            </div>
+      <div class="card">
+        <h2>SNMP GET</h2>
+        <div class="form-group">
+          <label for="get-oids">OIDs (comma-separated):</label>
+          <input
+            type="text"
+            id="get-oids"
+            value="1.3.6.1.2.1.1.1.0,1.3.6.1.2.1.1.5.0"
+          />
         </div>
+        <button onclick="performGet()">Perform GET</button>
+        <h3>Result:</h3>
+        <div class="result-container">
+          <pre id="get-result"></pre>
+          <button class="copy-btn" onclick="copyToClipboard('get-result')">
+            Copy
+          </button>
+        </div>
+      </div>
     </div>
-    
+
     <div id="set-tab" class="tab-content">
-        <div class="card">
-            <h2>SNMP SET</h2>
-            <div class="form-group">
-                <label for="set-oid">OID:</label>
-                <input type="text" id="set-oid" value="1.3.6.1.2.1.1.4.0">
-            </div>
-            <div class="form-group">
-                <label for="set-type">Type:</label>
-                <select id="set-type">
-                    <option value="string">String (OctetString)</option>
-                    <option value="integer">Integer</option>
-                    <option value="oid">OID</option>
-                    <option value="ipaddress">IP Address</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="set-value">Value:</label>
-                <input type="text" id="set-value" value="contact@example.com">
-            </div>
-            <button onclick="performSet()">Perform SET</button>
-            <h3>Result:</h3>
-            <div class="result-container">
-                <pre id="set-result"></pre>
-                <button class="copy-btn" onclick="copyToClipboard('set-result')">Copy</button>
-            </div>
+      <div class="card">
+        <h2>SNMP SET</h2>
+        <div class="form-group">
+          <label for="set-oid">OID:</label>
+          <input type="text" id="set-oid" value="1.3.6.1.2.1.1.4.0" />
         </div>
+        <div class="form-group">
+          <label for="set-type">Type:</label>
+          <select id="set-type">
+            <option value="string">String (OctetString)</option>
+            <option value="integer">Integer</option>
+            <option value="oid">OID</option>
+            <option value="ipaddress">IP Address</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="set-value">Value:</label>
+          <input type="text" id="set-value" value="contact@example.com" />
+        </div>
+        <button onclick="performSet()">Perform SET</button>
+        <h3>Result:</h3>
+        <div class="result-container">
+          <pre id="set-result"></pre>
+          <button class="copy-btn" onclick="copyToClipboard('set-result')">
+            Copy
+          </button>
+        </div>
+      </div>
     </div>
-    
+
     <div id="getbulk-tab" class="tab-content">
-        <div class="card">
-            <h2>SNMP GETBULK</h2>
-            <div class="form-group">
-                <label for="getbulk-oid">Base OID:</label>
-                <input type="text" id="getbulk-oid" value="1.3.6.1.2.1.1">
-            </div>
-            <div class="form-group">
-                <label for="non-repeaters">Non-Repeaters:</label>
-                <input type="number" id="non-repeaters" value="0">
-            </div>
-            <div class="form-group">
-                <label for="max-repetitions">Max Repetitions:</label>
-                <input type="number" id="max-repetitions" value="10">
-            </div>
-            <button onclick="performGetBulk()">Perform GETBULK</button>
-            <h3>Result:</h3>
-            <div class="result-container">
-                <pre id="getbulk-result"></pre>
-                <button class="copy-btn" onclick="copyToClipboard('getbulk-result')">Copy</button>
-            </div>
+      <div class="card">
+        <h2>SNMP GETBULK</h2>
+        <div class="form-group">
+          <label for="getbulk-oid">Base OID:</label>
+          <input type="text" id="getbulk-oid" value="1.3.6.1.2.1.1" />
         </div>
+        <div class="form-group">
+          <label for="non-repeaters">Non-Repeaters:</label>
+          <input type="number" id="non-repeaters" value="0" />
+        </div>
+        <div class="form-group">
+          <label for="max-repetitions">Max Repetitions:</label>
+          <input type="number" id="max-repetitions" value="10" />
+        </div>
+        <button onclick="performGetBulk()">Perform GETBULK</button>
+        <h3>Result:</h3>
+        <div class="result-container">
+          <pre id="getbulk-result"></pre>
+          <button class="copy-btn" onclick="copyToClipboard('getbulk-result')">
+            Copy
+          </button>
+        </div>
+      </div>
     </div>
-    
+
     <div id="walk-tab" class="tab-content">
-        <div class="card">
-            <h2>SNMP WALK</h2>
-            <div class="form-group">
-                <label for="walk-oid">Base OID:</label>
-                <input type="text" id="walk-oid" value="1.3.6.1.2.1.1">
-            </div>
-            <button onclick="performWalk()">Perform WALK</button>
-            <h3>Result:</h3>
-            <div class="result-container">
-                <pre id="walk-result"></pre>
-                <button class="copy-btn" onclick="copyToClipboard('walk-result')">Copy</button>
-            </div>
+      <div class="card">
+        <h2>SNMP WALK</h2>
+        <div class="form-group">
+          <label for="walk-oid">Base OID:</label>
+          <input type="text" id="walk-oid" value="1.3.6.1.2.1.1" />
         </div>
+        <button onclick="performWalk()">Perform WALK</button>
+        <h3>Result:</h3>
+        <div class="result-container">
+          <pre id="walk-result"></pre>
+          <button class="copy-btn" onclick="copyToClipboard('walk-result')">
+            Copy
+          </button>
+        </div>
+      </div>
     </div>
-    
+
     <div id="polling-tab" class="tab-content">
-        <div class="card">
-            <h2>SNMP Polling</h2>
-            <div class="polling-controls">
-                <div>
-                    <span class="status-indicator" id="polling-status-indicator"></span>
-                    <span id="polling-status-text">Polling Status: Checking...</span>
-                </div>
-                <button id="toggle-polling-btn" onclick="togglePolling()">Start Polling</button>
-                <button class="secondary" onclick="fetchPollingResults()">Refresh Results</button>
-            </div>
-            
-            <div class="form-group">
-                <label for="polling-type">Polling Type:</label>
-                <select id="polling-type">
-                    <option value="get">GET</option>
-                    <option value="getbulk">GETBULK</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label for="polling-interval">Interval (milliseconds):</label>
-                <input type="number" id="polling-interval" value="5000" min="1000">
-            </div>
-            
-            <!-- Dynamic form fields based on polling type -->
-            <div id="poll-get-fields">
-                <div class="form-group">
-                    <label for="polling-get-oids">OIDs (comma-separated):</label>
-                    <input type="text" id="polling-get-oids" value="1.3.6.1.2.1.1.1.0,1.3.6.1.2.1.1.5.0">
-                </div>
-            </div>
-            
-            <div id="poll-getbulk-fields" style="display: none;">
-                <div class="form-group">
-                    <label for="polling-getbulk-oid">Base OID:</label>
-                    <input type="text" id="polling-getbulk-oid" value="1.3.6.1.2.1.1">
-                </div>
-                <div class="form-group">
-                    <label for="polling-non-repeaters">Non-Repeaters:</label>
-                    <input type="number" id="polling-non-repeaters" value="0">
-                </div>
-                <div class="form-group">
-                    <label for="polling-max-repetitions">Max Repetitions:</label>
-                    <input type="number" id="polling-max-repetitions" value="10">
-                </div>
-            </div>
-            
-            <button onclick="savePollingConfig()">Save Polling Configuration</button>
-            
-            <h3>Polling Results:</h3>
-            <div class="form-group">
-                <label for="result-limit">Show last:</label>
-                <select id="result-limit" onchange="fetchPollingResults()">
-                    <option value="5">5 results</option>
-                    <option value="10" selected>10 results</option>
-                    <option value="20">20 results</option>
-                    <option value="50">50 results</option>
-                </select>
-            </div>
-            <div id="polling-results-container">
-                <div id="no-polling-results">No polling results yet.</div>
-            </div>
+      <div class="card">
+        <h2>SNMP Polling</h2>
+        <div class="polling-controls">
+          <div>
+            <span class="status-indicator" id="polling-status-indicator"></span>
+            <span id="polling-status-text">Polling Status: Checking...</span>
+          </div>
+          <button id="toggle-polling-btn" onclick="togglePolling()">
+            Start Polling
+          </button>
+          <button class="secondary" onclick="fetchPollingResults()">
+            Refresh Results
+          </button>
         </div>
+
+        <div class="form-group">
+          <label for="polling-type">Polling Type:</label>
+          <select id="polling-type">
+            <option value="get">GET</option>
+            <option value="getbulk">GETBULK</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="polling-interval">Interval (milliseconds):</label>
+          <input type="number" id="polling-interval" value="5000" min="1000" />
+        </div>
+
+        <!-- Dynamic form fields based on polling type -->
+        <div id="poll-get-fields">
+          <div class="form-group">
+            <label for="polling-get-oids">OIDs (comma-separated):</label>
+            <input
+              type="text"
+              id="polling-get-oids"
+              value="1.3.6.1.2.1.1.1.0,1.3.6.1.2.1.1.5.0"
+            />
+          </div>
+        </div>
+
+        <div id="poll-getbulk-fields" style="display: none">
+          <div class="form-group">
+            <label for="polling-getbulk-oid">Base OID:</label>
+            <input type="text" id="polling-getbulk-oid" value="1.3.6.1.2.1.1" />
+          </div>
+          <div class="form-group">
+            <label for="polling-non-repeaters">Non-Repeaters:</label>
+            <input type="number" id="polling-non-repeaters" value="0" />
+          </div>
+          <div class="form-group">
+            <label for="polling-max-repetitions">Max Repetitions:</label>
+            <input type="number" id="polling-max-repetitions" value="10" />
+          </div>
+        </div>
+
+        <button onclick="savePollingConfig()">
+          Save Polling Configuration
+        </button>
+
+        <h3>Polling Results:</h3>
+        <div class="form-group">
+          <label for="result-limit">Show last:</label>
+          <select id="result-limit" onchange="fetchPollingResults()">
+            <option value="5">5 results</option>
+            <option value="10" selected>10 results</option>
+            <option value="20">20 results</option>
+            <option value="50">50 results</option>
+          </select>
+        </div>
+        <div id="polling-results-container">
+          <div id="no-polling-results">No polling results yet.</div>
+        </div>
+      </div>
     </div>
 
     <div id="trap-tab" class="tab-content">
-        <div class="card">
-            <h2>SNMP Trap Listener</h2>
-            <div class="polling-controls">
-                <div>
-                    <span class="status-indicator" id="trap-status-indicator"></span>
-                    <span id="trap-status-text">Trap Listener Status: Checking...</span>
-                </div>
-                <button id="toggle-trap-btn" onclick="toggleTrapListener()">Start Trap Listener</button>
-                <button class="secondary" onclick="fetchTrapResults()">Refresh Traps</button>
-            </div>
-            
-            <div class="form-group">
-                <label for="trap-port">Trap Port:</label>
-                <input type="number" id="trap-port" value="16200" min="1" max="65535">
-            </div>
-            
-            <div class="form-group">
-                <label for="max-traps">Maximum Traps to Store:</label>
-                <input type="number" id="max-traps" value="100" min="10">
-            </div>
-            
-            <button onclick="saveTrapConfig()">Save Trap Configuration</button>
-            
-            <h3>Received Traps:</h3>
-            <div class="form-group">
-                <label for="trap-limit">Show last:</label>
-                <select id="trap-limit" onchange="fetchTrapResults()">
-                    <option value="5">5 traps</option>
-                    <option value="10" selected>10 traps</option>
-                    <option value="20">20 traps</option>
-                    <option value="50">50 traps</option>
-                </select>
-            </div>
-            <div id="trap-results-container">
-                <div id="no-trap-results">No traps received yet.</div>
-            </div>
+      <div class="card">
+        <h2>SNMP Trap Listener</h2>
+        <div class="polling-controls">
+          <div>
+            <span class="status-indicator" id="trap-status-indicator"></span>
+            <span id="trap-status-text">Trap Listener Status: Checking...</span>
+          </div>
+          <button id="toggle-trap-btn" onclick="toggleTrapListener()">
+            Start Trap Listener
+          </button>
+          <button class="secondary" onclick="fetchTrapResults()">
+            Refresh Traps
+          </button>
         </div>
+
+        <div class="form-group">
+          <label for="trap-port">Trap Port:</label>
+          <input
+            type="number"
+            id="trap-port"
+            value="16200"
+            min="1"
+            max="65535"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="max-traps">Maximum Traps to Store:</label>
+          <input type="number" id="max-traps" value="100" min="10" />
+        </div>
+
+        <button onclick="saveTrapConfig()">Save Trap Configuration</button>
+
+        <h3>Received Traps:</h3>
+        <div class="form-group">
+          <label for="trap-limit">Show last:</label>
+          <select id="trap-limit" onchange="fetchTrapResults()">
+            <option value="5">5 traps</option>
+            <option value="10" selected>10 traps</option>
+            <option value="20">20 traps</option>
+            <option value="50">50 traps</option>
+          </select>
+        </div>
+        <div id="trap-results-container">
+          <div id="no-trap-results">No traps received yet.</div>
+        </div>
+      </div>
     </div>
 
     <script>
-        // Global variable to track polling state
-        let isPolling = false;
-        
-        // Initialize page
-        window.onload = function() {
-            document.getElementById('polling-type').addEventListener('change', togglePollingFields);
-            checkPollingStatus();
-            checkTrapStatus();
+      // Global variable to track polling state
+      let isPolling = false;
+
+      // Initialize page
+      window.onload = function () {
+        document
+          .getElementById("polling-type")
+          .addEventListener("change", togglePollingFields);
+        checkPollingStatus();
+        checkTrapStatus();
+      };
+
+      function openTab(evt, tabName) {
+        const tabContents = document.getElementsByClassName("tab-content");
+        for (let i = 0; i < tabContents.length; i++) {
+          tabContents[i].classList.remove("active");
+        }
+
+        const tabs = document.getElementsByClassName("tab");
+        for (let i = 0; i < tabs.length; i++) {
+          tabs[i].classList.remove("active");
+        }
+
+        document.getElementById(tabName).classList.add("active");
+        evt.currentTarget.classList.add("active");
+        //trap tab
+        if (tabName === "trap-tab") {
+          checkTrapStatus();
+          fetchTrapResults();
+        }
+
+        // Refresh polling results when switching to polling tab
+        if (tabName === "polling-tab") {
+          checkPollingStatus();
+          fetchPollingResults();
+        }
+      }
+
+      function saveConfig() {
+        const host = document.getElementById("host").value;
+        const port = parseInt(document.getElementById("port").value);
+        const community = document.getElementById("community").value;
+
+        fetch("/api/config", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ host, port, community }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            showNotification("Configuration saved successfully!");
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            showNotification("Failed to save configuration", "error");
+          });
+      }
+
+      function performGet() {
+        const oids = document.getElementById("get-oids").value;
+        const resultElement = document.getElementById("get-result");
+
+        resultElement.textContent = "Loading...";
+
+        fetch(`/api/snmp/get?oids=${oids}`)
+          .then((response) => response.json())
+          .then((data) => {
+            resultElement.textContent = JSON.stringify(data, null, 2);
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            resultElement.textContent = "Error: " + error;
+          });
+      }
+
+      function performSet() {
+        const oid = document.getElementById("set-oid").value;
+        const type = document.getElementById("set-type").value;
+        const value = document.getElementById("set-value").value;
+        const resultElement = document.getElementById("set-result");
+
+        resultElement.textContent = "Loading...";
+
+        fetch("/api/snmp/set", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ oid, type, value }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            resultElement.textContent = JSON.stringify(data, null, 2);
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            resultElement.textContent = "Error: " + error;
+          });
+      }
+
+      function performGetBulk() {
+        const oid = document.getElementById("getbulk-oid").value;
+        const nonRepeaters = document.getElementById("non-repeaters").value;
+        const maxRepetitions = document.getElementById("max-repetitions").value;
+        const resultElement = document.getElementById("getbulk-result");
+
+        resultElement.textContent = "Loading...";
+
+        fetch(
+          `/api/snmp/getbulk?oid=${oid}&nonRepeaters=${nonRepeaters}&maxRepetitions=${maxRepetitions}`
+        )
+          .then((response) => response.json())
+          .then((data) => {
+            resultElement.textContent = JSON.stringify(data, null, 2);
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            resultElement.textContent = "Error: " + error;
+          });
+      }
+
+      function performWalk() {
+        const oid = document.getElementById("walk-oid").value;
+        const resultElement = document.getElementById("walk-result");
+
+        resultElement.textContent = "Loading...";
+
+        fetch(`/api/snmp/walk?oid=${oid}`)
+          .then((response) => response.json())
+          .then((data) => {
+            resultElement.textContent = JSON.stringify(data, null, 2);
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            resultElement.textContent = "Error: " + error;
+          });
+      }
+
+      // Polling related functions
+      function togglePollingFields() {
+        const pollingType = document.getElementById("polling-type").value;
+
+        if (pollingType === "get") {
+          document.getElementById("poll-get-fields").style.display = "block";
+          document.getElementById("poll-getbulk-fields").style.display = "none";
+        } else if (pollingType === "getbulk") {
+          document.getElementById("poll-get-fields").style.display = "none";
+          document.getElementById("poll-getbulk-fields").style.display =
+            "block";
+        }
+      }
+
+      function savePollingConfig() {
+        const type = document.getElementById("polling-type").value;
+        const interval = parseInt(
+          document.getElementById("polling-interval").value
+        );
+
+        let config = {
+          type: type,
+          interval: interval,
+          isEnabled: isPolling, // Maintain current polling state
         };
-        
-        function openTab(evt, tabName) {
 
-            
-            const tabContents = document.getElementsByClassName("tab-content");
-            for (let i = 0; i < tabContents.length; i++) {
-                tabContents[i].classList.remove("active");
-            }
-            
-            const tabs = document.getElementsByClassName("tab");
-            for (let i = 0; i < tabs.length; i++) {
-                tabs[i].classList.remove("active");
-            }
-            
-            document.getElementById(tabName).classList.add("active");
-            evt.currentTarget.classList.add("active");
-            //trap tab
-            if (tabName === 'trap-tab') {
-                checkTrapStatus();
-                fetchTrapResults();
-            }
-            
-            // Refresh polling results when switching to polling tab
-            if (tabName === 'polling-tab') {
-                checkPollingStatus();
-                fetchPollingResults();
-            }
+        if (type === "get") {
+          const oidString = document.getElementById("polling-get-oids").value;
+          config.oids = oidString.split(",").map((oid) => oid.trim());
+        } else if (type === "getbulk") {
+          config.oid = document.getElementById("polling-getbulk-oid").value;
+          config.nonRepeaters = parseInt(
+            document.getElementById("polling-non-repeaters").value
+          );
+          config.maxRepetitions = parseInt(
+            document.getElementById("polling-max-repetitions").value
+          );
         }
-        
-        function saveConfig() {
-            const host = document.getElementById("host").value;
-            const port = parseInt(document.getElementById("port").value);
-            const community = document.getElementById("community").value;
-            
-            fetch('/api/config', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ host, port, community })
-            })
-            .then(response => response.json())
-            .then(data => {
-                showNotification('Configuration saved successfully!');
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showNotification('Failed to save configuration', 'error');
-            });
+
+        fetch("/api/polling/config", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(config),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            showNotification("Polling configuration saved successfully!");
+            checkPollingStatus();
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            showNotification("Failed to save polling configuration", "error");
+          });
+      }
+
+      function checkPollingStatus() {
+        fetch("/api/polling/results")
+          .then((response) => response.json())
+          .then((data) => {
+            isPolling = data.isPolling;
+            updatePollingUI(isPolling);
+          })
+          .catch((error) => {
+            console.error("Error checking polling status:", error);
+            updatePollingUI(false);
+          });
+      }
+
+      function updatePollingUI(isActive) {
+        const statusIndicator = document.getElementById(
+          "polling-status-indicator"
+        );
+        const statusText = document.getElementById("polling-status-text");
+        const toggleButton = document.getElementById("toggle-polling-btn");
+
+        if (isActive) {
+          statusIndicator.className = "status-indicator status-on";
+          statusText.textContent = "Polling Status: Active";
+          toggleButton.textContent = "Stop Polling";
+          toggleButton.className = "danger";
+        } else {
+          statusIndicator.className = "status-indicator status-off";
+          statusText.textContent = "Polling Status: Inactive";
+          toggleButton.textContent = "Start Polling";
+          toggleButton.className = "";
         }
-        
-        function performGet() {
-            const oids = document.getElementById("get-oids").value;
-            const resultElement = document.getElementById("get-result");
-            
-            resultElement.textContent = "Loading...";
-            
-            fetch(`/api/snmp/get?oids=${oids}`)
-                .then(response => response.json())
-                .then(data => {
-                    resultElement.textContent = JSON.stringify(data, null, 2);
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    resultElement.textContent = 'Error: ' + error;
-                });
-        }
-        
-        function performSet() {
-            const oid = document.getElementById("set-oid").value;
-            const type = document.getElementById("set-type").value;
-            const value = document.getElementById("set-value").value;
-            const resultElement = document.getElementById("set-result");
-            
-            resultElement.textContent = "Loading...";
-            
-            fetch('/api/snmp/set', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ oid, type, value })
-            })
-            .then(response => response.json())
-            .then(data => {
-                resultElement.textContent = JSON.stringify(data, null, 2);
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                resultElement.textContent = 'Error: ' + error;
-            });
-        }
-        
-        function performGetBulk() {
-            const oid = document.getElementById("getbulk-oid").value;
-            const nonRepeaters = document.getElementById("non-repeaters").value;
-            const maxRepetitions = document.getElementById("max-repetitions").value;
-            const resultElement = document.getElementById("getbulk-result");
-            
-            resultElement.textContent = "Loading...";
-            
-            fetch(`/api/snmp/getbulk?oid=${oid}&nonRepeaters=${nonRepeaters}&maxRepetitions=${maxRepetitions}`)
-                .then(response => response.json())
-                .then(data => {
-                    resultElement.textContent = JSON.stringify(data, null, 2);
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    resultElement.textContent = 'Error: ' + error;
-                });
-        }
-        
-        function performWalk() {
-            const oid = document.getElementById("walk-oid").value;
-            const resultElement = document.getElementById("walk-result");
-            
-            resultElement.textContent = "Loading...";
-            
-            fetch(`/api/snmp/walk?oid=${oid}`)
-                .then(response => response.json())
-                .then(data => {
-                    resultElement.textContent = JSON.stringify(data, null, 2);
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    resultElement.textContent = 'Error: ' + error;
-                });
-        }
-        
-        // Polling related functions
-        function togglePollingFields() {
-            const pollingType = document.getElementById('polling-type').value;
-            
-            if (pollingType === 'get') {
-                document.getElementById('poll-get-fields').style.display = 'block';
-                document.getElementById('poll-getbulk-fields').style.display = 'none';
-            } else if (pollingType === 'getbulk') {
-                document.getElementById('poll-get-fields').style.display = 'none';
-                document.getElementById('poll-getbulk-fields').style.display = 'block';
-            }
-        }
-        
-        function savePollingConfig() {
-            const type = document.getElementById('polling-type').value;
-            const interval = parseInt(document.getElementById('polling-interval').value);
-            
-            let config = {
-                type: type,
-                interval: interval,
-                isEnabled: isPolling // Maintain current polling state
-            };
-            
-            if (type === 'get') {
-                const oidString = document.getElementById('polling-get-oids').value;
-                config.oids = oidString.split(',').map(oid => oid.trim());
-            } else if (type === 'getbulk') {
-                config.oid = document.getElementById('polling-getbulk-oid').value;
-                config.nonRepeaters = parseInt(document.getElementById('polling-non-repeaters').value);
-                config.maxRepetitions = parseInt(document.getElementById('polling-max-repetitions').value);
-            }
-            
-            fetch('/api/polling/config', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(config)
-            })
-            .then(response => response.json())
-            .then(data => {
-                showNotification('Polling configuration saved successfully!');
-                checkPollingStatus();
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showNotification('Failed to save polling configuration', 'error');
-            });
-        }
-        
-        function checkPollingStatus() {
-            fetch('/api/polling/results')
-                .then(response => response.json())
-                .then(data => {
-                    isPolling = data.isPolling;
-                    updatePollingUI(isPolling);
-                })
-                .catch(error => {
-                    console.error('Error checking polling status:', error);
-                    updatePollingUI(false);
-                });
-        }
-        
-        function updatePollingUI(isActive) {
-            const statusIndicator = document.getElementById('polling-status-indicator');
-            const statusText = document.getElementById('polling-status-text');
-            const toggleButton = document.getElementById('toggle-polling-btn');
-            
-            if (isActive) {
-                statusIndicator.className = 'status-indicator status-on';
-                statusText.textContent = 'Polling Status: Active';
-                toggleButton.textContent = 'Stop Polling';
-                toggleButton.className = 'danger';
+      }
+
+      function togglePolling() {
+        const newPollingState = !isPolling;
+
+        fetch("/api/polling/config", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ isEnabled: newPollingState }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            isPolling = data.config.isEnabled;
+            updatePollingUI(isPolling);
+
+            if (isPolling) {
+              showNotification("Polling started");
+              // Start fetching results periodically
+              startPollingResultsRefresh();
             } else {
-                statusIndicator.className = 'status-indicator status-off';
-                statusText.textContent = 'Polling Status: Inactive';
-                toggleButton.textContent = 'Start Polling';
-                toggleButton.className = '';
+              showNotification("Polling stopped");
+              // Stop fetching results periodically
+              stopPollingResultsRefresh();
             }
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            showNotification("Failed to toggle polling", "error");
+          });
+      }
+
+      let pollingResultsTimer = null;
+
+      function startPollingResultsRefresh() {
+        // Stop any existing timer first
+        stopPollingResultsRefresh();
+
+        // Start a new timer to refresh results every 5 seconds
+        pollingResultsTimer = setInterval(fetchPollingResults, 5000);
+      }
+
+      function stopPollingResultsRefresh() {
+        if (pollingResultsTimer) {
+          clearInterval(pollingResultsTimer);
+          pollingResultsTimer = null;
         }
-        
-        function togglePolling() {
-            const newPollingState = !isPolling;
-            
-            fetch('/api/polling/config', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ isEnabled: newPollingState })
-            })
-            .then(response => response.json())
-            .then(data => {
-                isPolling = data.config.isEnabled;
-                updatePollingUI(isPolling);
-                
-                if (isPolling) {
-                    showNotification('Polling started');
-                    // Start fetching results periodically
-                    startPollingResultsRefresh();
-                } else {
-                    showNotification('Polling stopped');
-                    // Stop fetching results periodically
-                    stopPollingResultsRefresh();
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showNotification('Failed to toggle polling', 'error');
-            });
-        }
-        
-        let pollingResultsTimer = null;
-        
-        function startPollingResultsRefresh() {
-            // Stop any existing timer first
-            stopPollingResultsRefresh();
-            
-            // Start a new timer to refresh results every 5 seconds
-            pollingResultsTimer = setInterval(fetchPollingResults, 5000);
-        }
-        
-        function stopPollingResultsRefresh() {
-            if (pollingResultsTimer) {
-                clearInterval(pollingResultsTimer);
-                pollingResultsTimer = null;
-            }
-        }
-        
-        function fetchPollingResults() {
-            const limit = document.getElementById('result-limit').value;
-            
-            fetch(`/api/polling/results?limit=${limit}`)
-                .then(response => response.json())
-                .then(data => {
-                    displayPollingResults(data);
-                })
-                .catch(error => {
-                    console.error('Error fetching polling results:', error);
-                    document.getElementById('polling-results-container').innerHTML = 
-                        `<div class="polling-result">Error fetching results: ${error}</div>`;
-                });
-        }
-        
-        function displayPollingResults(data) {
-            const container = document.getElementById('polling-results-container');
-            const results = data.results;
-            
-            if (!results || results.length === 0) {
-                container.innerHTML = '<div id="no-polling-results">No polling results yet.</div>';
-                return;
-            }
-            
-            // Update the polling config fields based on server config
-            if (data.config) {
-                document.getElementById('polling-type').value = data.config.type;
-                document.getElementById('polling-interval').value = data.config.interval;
-                
-                if (data.config.type === 'get' && data.config.oids) {
-                    document.getElementById('polling-get-oids').value = data.config.oids.join(',');
-                } else if (data.config.type === 'getbulk') {
-                    if (data.config.oid) document.getElementById('polling-getbulk-oid').value = data.config.oid;
-                    if (data.config.nonRepeaters !== undefined) document.getElementById('polling-non-repeaters').value = data.config.nonRepeaters;
-                    if (data.config.maxRepetitions !== undefined) document.getElementById('polling-max-repetitions').value = data.config.maxRepetitions;
-                }
-                
-                togglePollingFields();
-            }
-            
-            let html = '';
-            
-            // Process results in reverse order (newest first)
-            results.slice().reverse().forEach(result => {
-                html += `<div class="polling-result">`;
-                html += `<div class="polling-timestamp">${formatTimestamp(result.timestamp)} - ${result.type.toUpperCase()}</div>`;
-                
-                if (result.error) {
-                    html += `<div class="poll-record error">Error: ${result.error}</div>`;
-                } else if (result.results && result.results.length > 0) {
-                    result.results.forEach(item => {
-                        html += `<div class="poll-record">`;
-                        html += `<strong>OID:</strong> ${item.oid}<br>`;
-                        if (item.error) {
-                            html += `<strong>Error:</strong> ${item.error}`;
-                        } else {
-                            if (item.type) html += `<strong>Type:</strong> ${item.type}<br>`;
-                            html += `<strong>Value:</strong> ${item.value}`;
-                        }
-                        html += `</div>`;
-                    });
-                } else {
-                    html += `<div class="poll-record">No data returned</div>`;
-                }
-                
-                html += `</div>`;
-            });
-            
-            container.innerHTML = html;
-        }
-        
-        function formatTimestamp(timestamp) {
-            const date = new Date(timestamp);
-            return date.toLocaleString();
-        }
-        
-        function copyToClipboard(elementId) {
-            const element = document.getElementById(elementId);
-            const text = element.textContent;
-            
-            navigator.clipboard.writeText(text)
-                .then(() => {
-                    showNotification('Copied to clipboard!');
-                })
-                .catch(err => {
-                    console.error('Failed to copy text: ', err);
-                    showNotification('Failed to copy text', 'error');
-                });
-        }
-        
-        // Notification system
-        function showNotification(message, type = 'success') {
-            // Check if a notification container already exists
-            let notifContainer = document.getElementById('notification-container');
-            
-            // If not, create one
-            if (!notifContainer) {
-                notifContainer = document.createElement('div');
-                notifContainer.id = 'notification-container';
-                notifContainer.style.position = 'fixed';
-                notifContainer.style.bottom = '20px';
-                notifContainer.style.right = '20px';
-                notifContainer.style.zIndex = '1000';
-                document.body.appendChild(notifContainer);
-            }
-            
-            // Create notification element
-            const notification = document.createElement('div');
-            notification.style.backgroundColor = type === 'success' ? '#10b981' : '#ef4444';
-            notification.style.color = 'white';
-            notification.style.padding = '12px 20px';
-            notification.style.borderRadius = '4px';
-            notification.style.marginTop = '10px';
-            notification.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.2)';
-            notification.style.transition = 'all 0.3s ease';
-            notification.style.opacity = '0';
-            notification.textContent = message;
-            
-            // Add to container
-            notifContainer.appendChild(notification);
-            
-            // Trigger animation
-            setTimeout(() => {
-                notification.style.opacity = '1';
-            }, 10);
-            
-            // Remove after delay
-            setTimeout(() => {
-                notification.style.opacity = '0';
-                setTimeout(() => {
-                    notifContainer.removeChild(notification);
-                }, 300);
-            }, 3000);
+      }
+
+      function fetchPollingResults() {
+        const limit = document.getElementById("result-limit").value;
+
+        fetch(`/api/polling/results?limit=${limit}`)
+          .then((response) => response.json())
+          .then((data) => {
+            displayPollingResults(data);
+          })
+          .catch((error) => {
+            console.error("Error fetching polling results:", error);
+            document.getElementById(
+              "polling-results-container"
+            ).innerHTML = `<div class="polling-result">Error fetching results: ${error}</div>`;
+          });
+      }
+
+      function displayPollingResults(data) {
+        const container = document.getElementById("polling-results-container");
+        const results = data.results;
+
+        if (!results || results.length === 0) {
+          container.innerHTML =
+            '<div id="no-polling-results">No polling results yet.</div>';
+          return;
         }
 
-        // Trap related functions
-function checkTrapStatus() {
-    fetch('/api/trap/results')
-        .then(response => response.json())
-        .then(data => {
+        // Update the polling config fields based on server config
+        if (data.config) {
+          document.getElementById("polling-type").value = data.config.type;
+          document.getElementById("polling-interval").value =
+            data.config.interval;
+
+          if (data.config.type === "get" && data.config.oids) {
+            document.getElementById("polling-get-oids").value =
+              data.config.oids.join(",");
+          } else if (data.config.type === "getbulk") {
+            if (data.config.oid)
+              document.getElementById("polling-getbulk-oid").value =
+                data.config.oid;
+            if (data.config.nonRepeaters !== undefined)
+              document.getElementById("polling-non-repeaters").value =
+                data.config.nonRepeaters;
+            if (data.config.maxRepetitions !== undefined)
+              document.getElementById("polling-max-repetitions").value =
+                data.config.maxRepetitions;
+          }
+
+          togglePollingFields();
+        }
+
+        let html = "";
+
+        // Process results in reverse order (newest first)
+        results
+          .slice()
+          .reverse()
+          .forEach((result) => {
+            html += `<div class="polling-result">`;
+            html += `<div class="polling-timestamp">${formatTimestamp(
+              result.timestamp
+            )} - ${result.type.toUpperCase()}</div>`;
+
+            if (result.error) {
+              html += `<div class="poll-record error">Error: ${result.error}</div>`;
+            } else if (result.results && result.results.length > 0) {
+              result.results.forEach((item) => {
+                html += `<div class="poll-record">`;
+                html += `<strong>OID:</strong> ${item.oid}<br>`;
+                if (item.error) {
+                  html += `<strong>Error:</strong> ${item.error}`;
+                } else {
+                  if (item.type)
+                    html += `<strong>Type:</strong> ${item.type}<br>`;
+                  html += `<strong>Value:</strong> ${item.value}`;
+                }
+                html += `</div>`;
+              });
+            } else {
+              html += `<div class="poll-record">No data returned</div>`;
+            }
+
+            html += `</div>`;
+          });
+
+        container.innerHTML = html;
+      }
+
+      function formatTimestamp(timestamp) {
+        const date = new Date(timestamp);
+        return date.toLocaleString();
+      }
+
+      function copyToClipboard(elementId) {
+        const element = document.getElementById(elementId);
+        const text = element.textContent;
+
+        navigator.clipboard
+          .writeText(text)
+          .then(() => {
+            showNotification("Copied to clipboard!");
+          })
+          .catch((err) => {
+            console.error("Failed to copy text: ", err);
+            showNotification("Failed to copy text", "error");
+          });
+      }
+
+      // Notification system
+      function showNotification(message, type = "success") {
+        // Check if a notification container already exists
+        let notifContainer = document.getElementById("notification-container");
+
+        // If not, create one
+        if (!notifContainer) {
+          notifContainer = document.createElement("div");
+          notifContainer.id = "notification-container";
+          notifContainer.style.position = "fixed";
+          notifContainer.style.bottom = "20px";
+          notifContainer.style.right = "20px";
+          notifContainer.style.zIndex = "1000";
+          document.body.appendChild(notifContainer);
+        }
+
+        // Create notification element
+        const notification = document.createElement("div");
+        notification.style.backgroundColor =
+          type === "success" ? "#10b981" : "#ef4444";
+        notification.style.color = "white";
+        notification.style.padding = "12px 20px";
+        notification.style.borderRadius = "4px";
+        notification.style.marginTop = "10px";
+        notification.style.boxShadow = "0 2px 5px rgba(0, 0, 0, 0.2)";
+        notification.style.transition = "all 0.3s ease";
+        notification.style.opacity = "0";
+        notification.textContent = message;
+
+        // Add to container
+        notifContainer.appendChild(notification);
+
+        // Trigger animation
+        setTimeout(() => {
+          notification.style.opacity = "1";
+        }, 10);
+
+        // Remove after delay
+        setTimeout(() => {
+          notification.style.opacity = "0";
+          setTimeout(() => {
+            notifContainer.removeChild(notification);
+          }, 300);
+        }, 3000);
+      }
+
+      // Trap related functions
+      function checkTrapStatus() {
+        fetch("/api/trap/results")
+          .then((response) => response.json())
+          .then((data) => {
             const isListening = data.isListening;
             updateTrapUI(isListening);
-        })
-        .catch(error => {
-            console.error('Error checking trap status:', error);
+          })
+          .catch((error) => {
+            console.error("Error checking trap status:", error);
             updateTrapUI(false);
-        });
-}
+          });
+      }
 
-function updateTrapUI(isActive) {
-    const statusIndicator = document.getElementById('trap-status-indicator');
-    const statusText = document.getElementById('trap-status-text');
-    const toggleButton = document.getElementById('toggle-trap-btn');
-    
-    if (isActive) {
-        statusIndicator.className = 'status-indicator status-on';
-        statusText.textContent = 'Trap Listener Status: Active';
-        toggleButton.textContent = 'Stop Trap Listener';
-        toggleButton.className = 'danger';
-    } else {
-        statusIndicator.className = 'status-indicator status-off';
-        statusText.textContent = 'Trap Listener Status: Inactive';
-        toggleButton.textContent = 'Start Trap Listener';
-        toggleButton.className = '';
-    }
-}
+      function updateTrapUI(isActive) {
+        const statusIndicator = document.getElementById(
+          "trap-status-indicator"
+        );
+        const statusText = document.getElementById("trap-status-text");
+        const toggleButton = document.getElementById("toggle-trap-btn");
 
-function toggleTrapListener() {
-    const newTrapState = document.getElementById('toggle-trap-btn').textContent.includes('Start');
-    
-    fetch('/api/trap/config', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ isEnabled: newTrapState })
-    })
-    .then(response => response.json())
-    .then(data => {
-        updateTrapUI(data.config.isEnabled);
-        
-        if (data.config.isEnabled) {
-            showNotification('Trap listener started');
-            startTrapResultsRefresh();
+        if (isActive) {
+          statusIndicator.className = "status-indicator status-on";
+          statusText.textContent = "Trap Listener Status: Active";
+          toggleButton.textContent = "Stop Trap Listener";
+          toggleButton.className = "danger";
         } else {
-            showNotification('Trap listener stopped');
-            stopTrapResultsRefresh();
+          statusIndicator.className = "status-indicator status-off";
+          statusText.textContent = "Trap Listener Status: Inactive";
+          toggleButton.textContent = "Start Trap Listener";
+          toggleButton.className = "";
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showNotification('Failed to toggle trap listener', 'error');
-    });
-}
+      }
 
-function saveTrapConfig() {
-    const port = parseInt(document.getElementById('trap-port').value);
-    const maxTraps = parseInt(document.getElementById('max-traps').value);
-    
-    // Get current state
-    const isEnabled = document.getElementById('trap-status-indicator').classList.contains('status-on');
-    
-    fetch('/api/trap/config', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ port, maxTraps, isEnabled })
-    })
-    .then(response => response.json())
-    .then(data => {
-        showNotification('Trap configuration saved successfully!');
-        updateTrapUI(data.config.isEnabled);
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showNotification('Failed to save trap configuration', 'error');
-    });
-}
+      function toggleTrapListener() {
+        const newTrapState = document
+          .getElementById("toggle-trap-btn")
+          .textContent.includes("Start");
 
-let trapResultsTimer = null;
-
-function startTrapResultsRefresh() {
-    // Stop any existing timer
-    stopTrapResultsRefresh();
-    
-    // Start a new timer to refresh results every 5 seconds
-    trapResultsTimer = setInterval(fetchTrapResults, 5000);
-}
-
-function stopTrapResultsRefresh() {
-    if (trapResultsTimer) {
-        clearInterval(trapResultsTimer);
-        trapResultsTimer = null;
-    }
-}
-
-function fetchTrapResults() {
-    const limit = document.getElementById('trap-limit').value;
-    
-    fetch(`/api/trap/results?limit=${limit}`)
-        .then(response => response.json())
-        .then(data => {
-            displayTrapResults(data);
-            console.log("fetched traps", data)
+        fetch("/api/trap/config", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ isEnabled: newTrapState }),
         })
-        .catch(error => {
-            console.error('Error fetching trap results:', error);
-            document.getElementById('trap-results-container').innerHTML = 
-                `<div class="trap-result">Error fetching results: ${error}</div>`;
-        });
-}
+          .then((response) => response.json())
+          .then((data) => {
+            updateTrapUI(data.config.isEnabled);
 
-function displayTrapResults(data) {
-    const container = document.getElementById('trap-results-container');
-    const results = data.results;
-    console.log("display traps",results)
-    
-    if (!results || results.length === 0) {
-        container.innerHTML = '<div id="no-trap-results">No traps received yet.</div>';
-        return;
-    }
-    
-    // Update the trap config fields based on server config
-    if (data.config) {
-        document.getElementById('trap-port').value = data.config.port;
-        document.getElementById('max-traps').value = data.config.maxTraps;
-    }
-    
-    let html = '';
-    
-    results.forEach(trap => {
-        html += `<div class="trap-result">`;
-        html += `<div class="trap-header">`;
-        html += `<div class="trap-timestamp">${formatTimestamp(trap.timestamp)}</div>`;
-        html += `<div class="trap-version">SNMP ${trap.version}</div>`;
-        html += `</div>`;
-        
-        html += `<div class="trap-source">Source: ${trap.sourceAddress}:${trap.sourcePort}</div>`;
-        html += `<div>Community: ${trap.community}</div>`;
-        
-        if (trap.enterprise) {
+            if (data.config.isEnabled) {
+              showNotification("Trap listener started");
+              startTrapResultsRefresh();
+            } else {
+              showNotification("Trap listener stopped");
+              stopTrapResultsRefresh();
+            }
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            showNotification("Failed to toggle trap listener", "error");
+          });
+      }
+
+      function saveTrapConfig() {
+        const port = parseInt(document.getElementById("trap-port").value);
+        const maxTraps = parseInt(document.getElementById("max-traps").value);
+
+        // Get current state
+        const isEnabled = document
+          .getElementById("trap-status-indicator")
+          .classList.contains("status-on");
+
+        fetch("/api/trap/config", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ port, maxTraps, isEnabled }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            showNotification("Trap configuration saved successfully!");
+            updateTrapUI(data.config.isEnabled);
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            showNotification("Failed to save trap configuration", "error");
+          });
+      }
+
+      let trapResultsTimer = null;
+
+      function startTrapResultsRefresh() {
+        // Stop any existing timer
+        stopTrapResultsRefresh();
+
+        // Start a new timer to refresh results every 5 seconds
+        trapResultsTimer = setInterval(fetchTrapResults, 5000);
+      }
+
+      function stopTrapResultsRefresh() {
+        if (trapResultsTimer) {
+          clearInterval(trapResultsTimer);
+          trapResultsTimer = null;
+        }
+      }
+
+      function fetchTrapResults() {
+        const limit = document.getElementById("trap-limit").value;
+
+        fetch(`/api/trap/results?limit=${limit}`)
+          .then((response) => response.json())
+          .then((data) => {
+            displayTrapResults(data);
+            console.log("fetched traps", data);
+          })
+          .catch((error) => {
+            console.error("Error fetching trap results:", error);
+            document.getElementById(
+              "trap-results-container"
+            ).innerHTML = `<div class="trap-result">Error fetching results: ${error}</div>`;
+          });
+      }
+
+      function displayTrapResults(data) {
+        const container = document.getElementById("trap-results-container");
+        const results = data.results;
+        console.log("display traps", results);
+
+        if (!results || results.length === 0) {
+          container.innerHTML =
+            '<div id="no-trap-results">No traps received yet.</div>';
+          return;
+        }
+
+        // Update the trap config fields based on server config
+        if (data.config) {
+          document.getElementById("trap-port").value = data.config.port;
+          document.getElementById("max-traps").value = data.config.maxTraps;
+        }
+
+        let html = "";
+
+        results.forEach((trap) => {
+          html += `<div class="trap-result">`;
+          html += `<div class="trap-header">`;
+          html += `<div class="trap-timestamp">${formatTimestamp(
+            trap.timestamp
+          )}</div>`;
+          html += `<div class="trap-version">SNMP ${trap.version}</div>`;
+          html += `</div>`;
+
+          html += `<div class="trap-source">Source: ${trap.sourceAddress}:${trap.sourcePort}</div>`;
+          html += `<div>Community: ${trap.community}</div>`;
+
+          if (trap.enterprise) {
             html += `<div>Enterprise OID: ${trap.enterprise}</div>`;
-        }
-        
-        if (trap.genericTrap !== undefined) {
+          }
+
+          if (trap.genericTrap !== undefined) {
             html += `<div>Generic Trap: ${trap.genericTrap}</div>`;
-        }
-        
-        if (trap.specificTrap !== undefined) {
+          }
+
+          if (trap.specificTrap !== undefined) {
             html += `<div>Specific Trap: ${trap.specificTrap}</div>`;
-        }
-        
-        if (trap.timeStamp !== undefined) {
+          }
+
+          if (trap.timeStamp !== undefined) {
             html += `<div>Timestamp: ${trap.timeStamp}</div>`;
-        }
-        
-        html += `<div style="margin-top: 10px;"><strong>Varbinds:</strong></div>`;
-        
-        if (trap.varbinds && trap.varbinds.length > 0) {
+          }
+
+          html += `<div style="margin-top: 10px;"><strong>Varbinds:</strong></div>`;
+
+          if (trap.varbinds && trap.varbinds.length > 0) {
             trap.varbinds.forEach((varbind, index) => {
-                html += `<div class="varbind-item">`;
-                html += `<strong>${index + 1}. OID:</strong> ${varbind.oid}<br>`;
-                html += `<strong>Type:</strong> ${varbind.type}<br>`;
-                html += `<strong>Value:</strong> ${varbind.value || '(null)'}`;
-                html += `</div>`;
+              html += `<div class="varbind-item">`;
+              html += `<strong>${index + 1}. OID:</strong> ${varbind.oid}<br>`;
+              html += `<strong>Type:</strong> ${varbind.type}<br>`;
+              html += `<strong>Value:</strong> ${varbind.value || "(null)"}`;
+              html += `</div>`;
             });
-        } else {
+          } else {
             html += `<div class="varbind-item">No varbinds</div>`;
-        }
-        
-        html += `</div>`;
-    });
-    
-    container.innerHTML = html;
-}
+          }
+
+          html += `</div>`;
+        });
+
+        container.innerHTML = html;
+      }
     </script>
-</body>
+  </body>
 </html>
