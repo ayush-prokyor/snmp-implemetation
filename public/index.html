@@ -232,39 +232,88 @@
             background-color: white;
         }
 
-        .trap-result {
-            margin-bottom: 16px;
-            padding: 16px;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            background-color: var(--card-bg);
-        }
-
-        .trap-timestamp {
-            color: var(--text-light);
-            margin-bottom: 8px;
-            font-size: 0.9em;
-        }
-
-        .trap-header {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .trap-source {
-            font-weight: 500;
-        }
-
-        .trap-version {
-            background-color: var(--primary);
-            color: white;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 0.8em;
-        }
+          /* Trap-specific styles */
+    .trap-result {
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        margin-bottom: 15px;
+        background-color: #f9f9f9;
+        overflow: hidden;
+    }
+    
+    .trap-header {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px;
+        background-color: #edf2f7;
+        border-bottom: 1px solid #ddd;
+        font-weight: bold;
+    }
+    
+    .trap-timestamp {
+        color: #4a5568;
+    }
+    
+    .trap-source {
+        color: #2b6cb0;
+    }
+    
+    .trap-type {
+        color: #805ad5;
+    }
+    
+    .trap-details {
+        padding: 10px;
+    }
+    
+    .trap-varbinds {
+        margin-top: 10px;
+    }
+    
+    .trap-varbinds ul {
+        list-style-type: none;
+        padding-left: 0;
+    }
+    
+    .trap-varbinds li {
+        display: flex;
+        border-bottom: 1px solid #eee;
+        padding: 8px 0;
+    }
+    
+    .trap-varbinds li:last-child {
+        border-bottom: none;
+    }
+    
+    .varbind-oid {
+        flex: 2;
+        font-family: monospace;
+    }
+    
+    .varbind-type {
+        flex: 1;
+        color: #718096;
+        padding: 0 10px;
+    }
+    
+    .varbind-value {
+        flex: 2;
+        font-family: monospace;
+        word-break: break-all;
+    }
+    
+    .trap-controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+    
+    #no-trap-results {
+        padding: 15px;
+        text-align: center;
+        color: #718096;
+    }
 
         .varbind-item {
             padding: 8px 0;
@@ -476,26 +525,20 @@
 
     <div id="trap-tab" class="tab-content">
         <div class="card">
-            <h2>SNMP Trap Listener</h2>
-            <div class="polling-controls">
+            <h2>SNMP Traps</h2>
+            <div class="trap-controls">
                 <div>
                     <span class="status-indicator" id="trap-status-indicator"></span>
-                    <span id="trap-status-text">Trap Listener Status: Checking...</span>
+                    <span id="trap-status-text">Trap Receiver Status: Checking...</span>
                 </div>
-                <button id="toggle-trap-btn" onclick="toggleTrapListener()">Start Trap Listener</button>
                 <button class="secondary" onclick="fetchTrapResults()">Refresh Traps</button>
             </div>
             
             <div class="form-group">
-                <label for="trap-port">Trap Port:</label>
-                <input type="number" id="trap-port" value="16200" min="1" max="65535">
+                <label for="trap-port">Trap Receiver Port:</label>
+                <input type="number" id="trap-port" value="16200" min="1025" max="65535">
+                <small>Changing this requires server restart</small>
             </div>
-            
-            <div class="form-group">
-                <label for="max-traps">Maximum Traps to Store:</label>
-                <input type="number" id="max-traps" value="100" min="10">
-            </div>
-            
             <button onclick="saveTrapConfig()">Save Trap Configuration</button>
             
             <h3>Received Traps:</h3>
@@ -506,6 +549,7 @@
                     <option value="10" selected>10 traps</option>
                     <option value="20">20 traps</option>
                     <option value="50">50 traps</option>
+                    <option value="100">100 traps</option>
                 </select>
             </div>
             <div id="trap-results-container">
@@ -514,6 +558,7 @@
         </div>
     </div>
 
+    <script src="/socket.io/socket.io.js"></script>
     <script>
         // Global variable to track polling state
         let isPolling = false;
@@ -917,84 +962,43 @@
             }, 3000);
         }
 
-        // Trap related functions
-function checkTrapStatus() {
-    fetch('/api/trap/results')
-        .then(response => response.json())
-        .then(data => {
-            const isListening = data.isListening;
-            updateTrapUI(isListening);
-        })
-        .catch(error => {
-            console.error('Error checking trap status:', error);
-            updateTrapUI(false);
-        });
-}
+        //traps related fucntions
+        // Socket.io initialization
+const socket = io();
 
-function updateTrapUI(isActive) {
+// Trap related functions
+function checkTrapStatus() {
+    // Check if trap receiver is active (always true in this implementation)
     const statusIndicator = document.getElementById('trap-status-indicator');
     const statusText = document.getElementById('trap-status-text');
-    const toggleButton = document.getElementById('toggle-trap-btn');
     
-    if (isActive) {
-        statusIndicator.className = 'status-indicator status-on';
-        statusText.textContent = 'Trap Listener Status: Active';
-        toggleButton.textContent = 'Stop Trap Listener';
-        toggleButton.className = 'danger';
-    } else {
-        statusIndicator.className = 'status-indicator status-off';
-        statusText.textContent = 'Trap Listener Status: Inactive';
-        toggleButton.textContent = 'Start Trap Listener';
-        toggleButton.className = '';
-    }
-}
-
-function toggleTrapListener() {
-    const newTrapState = document.getElementById('toggle-trap-btn').textContent.includes('Start');
+    statusIndicator.className = 'status-indicator status-on';
+    statusText.textContent = 'Trap Receiver Status: Active';
     
-    fetch('/api/trap/config', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ isEnabled: newTrapState })
-    })
-    .then(response => response.json())
-    .then(data => {
-        updateTrapUI(data.config.isEnabled);
-        
-        if (data.config.isEnabled) {
-            showNotification('Trap listener started');
-            startTrapResultsRefresh();
-        } else {
-            showNotification('Trap listener stopped');
-            stopTrapResultsRefresh();
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showNotification('Failed to toggle trap listener', 'error');
-    });
+    // Get current trap configuration
+    fetch('/api/traps/config')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('trap-port').value = data.config.port;
+        })
+        .catch(error => {
+            console.error('Error fetching trap config:', error);
+        });
 }
 
 function saveTrapConfig() {
     const port = parseInt(document.getElementById('trap-port').value);
-    const maxTraps = parseInt(document.getElementById('max-traps').value);
     
-    // Get current state
-    const isEnabled = document.getElementById('trap-status-indicator').classList.contains('status-on');
-    
-    fetch('/api/trap/config', {
+    fetch('/api/traps/config', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ port, maxTraps, isEnabled })
+        body: JSON.stringify({ port })
     })
     .then(response => response.json())
     .then(data => {
-        showNotification('Trap configuration saved successfully!');
-        updateTrapUI(data.config.isEnabled);
+        showNotification(data.message || 'Trap configuration saved successfully!');
     })
     .catch(error => {
         console.error('Error:', error);
@@ -1002,102 +1006,129 @@ function saveTrapConfig() {
     });
 }
 
-let trapResultsTimer = null;
-
-function startTrapResultsRefresh() {
-    // Stop any existing timer
-    stopTrapResultsRefresh();
-    
-    // Start a new timer to refresh results every 5 seconds
-    trapResultsTimer = setInterval(fetchTrapResults, 5000);
-}
-
-function stopTrapResultsRefresh() {
-    if (trapResultsTimer) {
-        clearInterval(trapResultsTimer);
-        trapResultsTimer = null;
-    }
-}
-
 function fetchTrapResults() {
     const limit = document.getElementById('trap-limit').value;
     
-    fetch(`/api/trap/results?limit=${limit}`)
+    fetch(`/api/traps?limit=${limit}`)
         .then(response => response.json())
         .then(data => {
-            displayTrapResults(data);
-            console.log("fetched traps", data)
+            displayTrapResults(data.traps);
         })
         .catch(error => {
             console.error('Error fetching trap results:', error);
             document.getElementById('trap-results-container').innerHTML = 
-                `<div class="trap-result">Error fetching results: ${error}</div>`;
+                `<div class="trap-result">Error fetching traps: ${error}</div>`;
         });
 }
 
-function displayTrapResults(data) {
+function displayTrapResults(traps) {
     const container = document.getElementById('trap-results-container');
-    const results = data.results;
-    console.log("display traps",results)
     
-    if (!results || results.length === 0) {
+    if (!traps || traps.length === 0) {
         container.innerHTML = '<div id="no-trap-results">No traps received yet.</div>';
         return;
     }
     
-    // Update the trap config fields based on server config
-    if (data.config) {
-        document.getElementById('trap-port').value = data.config.port;
-        document.getElementById('max-traps').value = data.config.maxTraps;
-    }
-    
     let html = '';
     
-    results.forEach(trap => {
+    traps.forEach(trap => {
         html += `<div class="trap-result">`;
         html += `<div class="trap-header">`;
         html += `<div class="trap-timestamp">${formatTimestamp(trap.timestamp)}</div>`;
-        html += `<div class="trap-version">SNMP ${trap.version}</div>`;
+        html += `<div class="trap-source">${trap.source}:${trap.sourcePort}</div>`;
+        html += `<div class="trap-type">${trap.pdu.type}</div>`;
         html += `</div>`;
         
-        html += `<div class="trap-source">Source: ${trap.sourceAddress}:${trap.sourcePort}</div>`;
-        html += `<div>Community: ${trap.community}</div>`;
+        html += `<div class="trap-details">`;
+        html += `<div><strong>Version:</strong> ${trap.version}</div>`;
+        html += `<div><strong>Community:</strong> ${trap.community}</div>`;
         
-        if (trap.enterprise) {
-            html += `<div>Enterprise OID: ${trap.enterprise}</div>`;
+        if (trap.pdu.enterprise && trap.pdu.enterprise !== 'N/A') {
+            html += `<div><strong>Enterprise OID:</strong> ${trap.pdu.enterprise}</div>`;
         }
         
-        if (trap.genericTrap !== undefined) {
-            html += `<div>Generic Trap: ${trap.genericTrap}</div>`;
-        }
-        
-        if (trap.specificTrap !== undefined) {
-            html += `<div>Specific Trap: ${trap.specificTrap}</div>`;
-        }
-        
-        if (trap.timeStamp !== undefined) {
-            html += `<div>Timestamp: ${trap.timeStamp}</div>`;
-        }
-        
-        html += `<div style="margin-top: 10px;"><strong>Varbinds:</strong></div>`;
-        
-        if (trap.varbinds && trap.varbinds.length > 0) {
-            trap.varbinds.forEach((varbind, index) => {
-                html += `<div class="varbind-item">`;
-                html += `<strong>${index + 1}. OID:</strong> ${varbind.oid}<br>`;
-                html += `<strong>Type:</strong> ${varbind.type}<br>`;
-                html += `<strong>Value:</strong> ${varbind.value || '(null)'}`;
-                html += `</div>`;
+        if (trap.pdu.varbinds && trap.pdu.varbinds.length > 0) {
+            html += `<div class="trap-varbinds">`;
+            html += `<strong>Variable Bindings:</strong>`;
+            html += `<ul>`;
+            trap.pdu.varbinds.forEach(varbind => {
+                html += `<li>`;
+                html += `<div class="varbind-oid">${varbind.oid}</div>`;
+                html += `<div class="varbind-type">${varbind.type}</div>`;
+                html += `<div class="varbind-value">${varbind.value}</div>`;
+                html += `</li>`;
             });
-        } else {
-            html += `<div class="varbind-item">No varbinds</div>`;
+            html += `</ul>`;
+            html += `</div>`;
         }
         
+        html += `</div>`;
         html += `</div>`;
     });
     
     container.innerHTML = html;
 }
+
+// Socket.io event handling for real-time trap notifications
+socket.on('connect', () => {
+    console.log('Connected to server');
+});
+
+socket.on('trapHistory', (traps) => {
+    displayTrapResults(traps);
+});
+
+socket.on('newTrap', (trap) => {
+    // Add the new trap to the UI if we're on the trap tab
+    if (document.getElementById('trap-tab').classList.contains('active')) {
+        const container = document.getElementById('trap-results-container');
+        const noTrapsElement = document.getElementById('no-trap-results');
+        
+        if (noTrapsElement) {
+            container.innerHTML = ''; // Clear "no traps" message
+        }
+        
+        // Create new trap element
+        const trapElement = document.createElement('div');
+        trapElement.className = 'trap-result';
+        trapElement.innerHTML = `
+            <div class="trap-header">
+                <div class="trap-timestamp">${formatTimestamp(trap.timestamp)}</div>
+                <div class="trap-source">${trap.source}:${trap.sourcePort}</div>
+                <div class="trap-type">${trap.pdu.type}</div>
+            </div>
+            <div class="trap-details">
+                <div><strong>Version:</strong> ${trap.version}</div>
+                <div><strong>Community:</strong> ${trap.community}</div>
+                ${trap.pdu.enterprise && trap.pdu.enterprise !== 'N/A' ? 
+                    `<div><strong>Enterprise OID:</strong> ${trap.pdu.enterprise}</div>` : ''}
+                ${trap.pdu.varbinds && trap.pdu.varbinds.length > 0 ? 
+                    `<div class="trap-varbinds">
+                        <strong>Variable Bindings:</strong>
+                        <ul>
+                            ${trap.pdu.varbinds.map(varbind => 
+                                `<li>
+                                    <div class="varbind-oid">${varbind.oid}</div>
+                                    <div class="varbind-type">${varbind.type}</div>
+                                    <div class="varbind-value">${varbind.value}</div>
+                                </li>`
+                            ).join('')}
+                        </ul>
+                    </div>` : ''}
+            </div>
+        `;
+        
+        // Add to the top of the container
+        container.insertBefore(trapElement, container.firstChild);
+        
+        // Show notification
+        showNotification(`New SNMP Trap received from ${trap.source}`, 'success');
+    } else {
+        // Show a notification even if we're not on the trap tab
+        showNotification(`New SNMP Trap received from ${trap.source}`, 'success');
+    }
+});
+
     </script>
 </body>
 </html>

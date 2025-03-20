@@ -1,12 +1,16 @@
 const express = require('express');
-const dgram = require('dgram');
+const http = require('http');
 const snmp = require('net-snmp');
+const socketIo = require('socket.io');
+const path = require('path');
+
 const app = express();
+const server = http.createServer(app);
+const io = socketIo(server);
 const port = 3000;
 
 app.use(express.json());
 app.use(express.static('public'));
-
 
 // SNMP Agent Configuration
 const agentConfig = {
@@ -26,22 +30,18 @@ let pollingConfig = {
   maxRepetitions: 10
 };
 
-// Store polling port: 16200,results
+// Store polling results
 let pollingResults = [];
 let pollingTimer = null;
 
 // Trap configuration
 const trapConfig = {
-               // Standard SNMP trap port
-    isEnabled: true,    // Default disabled
-    maxTraps: 100        // Maximum number of traps to store
-  };
-  
-  // Store received traps
-  let receivedTraps = [];
-  let trapListener = null;
-  
-  const trapReceiver = snmp.createReceiver({ port: trapConfig.port });
+  port: 16200,
+  disableAuthorization: true
+};
+
+// Store received traps
+const trapHistory = [];
 
 // Create SNMP session
 function createSession() {
@@ -51,9 +51,9 @@ function createSession() {
   });
 }
 
-app.get("/",(req ,res)=>{
-  res.send("welcome to snmp-server-page")
-})
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 // GET endpoint
 app.get('/api/snmp/get', (req, res) => {
@@ -431,147 +431,120 @@ function stopPolling() {
   }
 }
 
-// Start Trap Listener function
-function startTrapListener() {
-    // Stop any existing trap listener
-    stopTrapListener();
-    
-    try {
-      // Create UDP socket for listening to traps
+// ========= TRAP FUNCTIONALITY =========
+
+// Set up SNMP trap receiver
+const trapCallback = function(error, trap) {
+  if (error) {
+    console.error('Trap Error:', error.message);
+    return;
+  }
+
+  const now = new Date();
+  const trapType = snmp.PduType[trap.pdu.type] || "Unknown";
+  
+  console.log(`${now.toLocaleString()}: ${trapType} received from ${trap.rinfo.address}`);
+  
+  // Create a structure to store trap info
+  const trapInfo = {
+    timestamp: now.toISOString(),
+    source: trap.rinfo.address,
+    sourcePort: trap.rinfo.port,
+    version: snmp.Version[trap.version] || trap.version,
+    community: trap.community || 'N/A',
+    pdu: {
+      type: trapType,
+      enterprise: trap.pdu.enterprise ? trap.pdu.enterprise.join('.') : 'N/A',
+      varbinds: []
+    }
+  };
+
+  // Process variable bindings
+  if (trap.pdu.varbinds && Array.isArray(trap.pdu.varbinds)) {
+    trap.pdu.varbinds.forEach((varbind) => {
+      let displayValue = 'undefined';
       
-      trapListener = dgram.createSocket('udp4');
-      
-      // Handle incoming messages
-      trapListener.on('message', function (msg, rinfo) {
-        console.log('Received potential SNMP trap from:', rinfo.address, rinfo.port);
-
-        try {
-            // Decode the SNMP message
-            const message = snmp.Message.fromBuffer(msg);
-
-            // Determine SNMP version
-            let version = 'unknown';
-            if (message.version === snmp.Version1) version = 'v1';
-            else if (message.version === snmp.Version2c) version = 'v2c';
-            else if (message.version === snmp.Version3) version = 'v3';
-
-            console.log(`Parsed SNMP ${version} message:`, JSON.stringify(message, null, 2));
-
-            // Prepare trap data
-            const trapInfo = {
-                timestamp: new Date().toISOString(),
-                version: version,
-                sourceAddress: rinfo.address,
-                sourcePort: rinfo.port,
-                community: message.community || 'unknown',
-                pdu: message.pdu ? message.pdu.type : 'unknown',
-                varbinds: []
-            };
-
-            if (message.pdu && message.pdu.varbinds) {
-                trapInfo.varbinds = message.pdu.varbinds.map(vb => ({
-                    oid: vb.oid,
-                    value: vb.value ? vb.value.toString() : 'unknown'
-                }));
-            }
-
-            // Store trap
-            receivedTraps.unshift(trapInfo);
-            if (receivedTraps.length > trapConfig.maxTraps) {
-                receivedTraps = receivedTraps.slice(0, trapConfig.maxTraps);
-            }
-
-            console.log("Traps received:", receivedTraps);
-        } catch (parseError) {
-            console.error('Error parsing SNMP trap:', parseError);
-            receivedTraps.unshift({
-                timestamp: new Date().toISOString(),
-                sourceAddress: rinfo.address,
-                sourcePort: rinfo.port,
-                error: 'Failed to parse: ' + parseError.message,
-                rawData: msg.toString('hex')
-            });
-
-            if (receivedTraps.length > trapConfig.maxTraps) {
-                receivedTraps = receivedTraps.slice(0, trapConfig.maxTraps);
-            }
+      if (varbind.value !== undefined) {
+        // Direct handling for Buffer values when it's type 4 (OctetString)
+        if (Buffer.isBuffer(varbind.value) && varbind.type === 4) {
+          // Use toString directly on the Buffer
+          displayValue = varbind.value.toString('utf8');
+          console.log("Converted buffer to string:", displayValue);
+        } else if (typeof varbind.value === 'object' && varbind.value !== null) {
+          try {
+            displayValue = JSON.stringify(varbind.value);
+          } catch (e) {
+            displayValue = '[Complex Object]';
+          }
+        } else {
+          displayValue = varbind.value.toString();
         }
+      }
+      
+      trapInfo.pdu.varbinds.push({
+        oid: varbind.oid,
+        type: snmp.ObjectType[varbind.type] || varbind.type,
+        value: displayValue
+      });
+      
+      console.log(`  ${varbind.oid} -> ${displayValue}`);
     });
+  }
 
-    trapListener.on('error', function (error) {
-        console.error('Trap listener error:', error);
-    });
-
-    trapListener.bind(trapConfig.port, function () {
-        console.log(`SNMP Trap listener started on port ${trapConfig.port}`);
-    });
-
-    } catch (error) {
-      console.error('Failed to start trap listener:', error);
-    }
+  // Store trap and limit history to latest 100 traps
+  trapHistory.unshift(trapInfo);
+  if (trapHistory.length > 100) {
+    trapHistory.pop();
   }
   
-  // Stop Trap Listener function
-  function stopTrapListener() {
-    if (trapListener) {
-      try {
-        trapListener.close();
-        trapListener = null;
-        console.log('SNMP Trap listener stopped');
-      } catch (error) {
-        console.error('Error stopping trap listener:', error);
-      }
-    }
-  }
+  // Emit to all connected clients
+  io.emit('newTrap', trapInfo);
+};
+
+// Create the receiver with callback
+const receiver = snmp.createReceiver(trapConfig, trapCallback);
+
+// Set up authorizer (even though we have disableAuthorization: true)
+const authorizer = receiver.getAuthorizer();
+authorizer.addCommunity("public");
+
+// Get traps endpoint
+app.get('/api/traps', (req, res) => {
+  const limit = parseInt(req.query.limit || trapHistory.length);
+  res.json({ traps: trapHistory.slice(0, limit) });
+});
+
+// Configure trap receiver
+app.post('/api/traps/config', (req, res) => {
+  const { port } = req.body;
   
-  // Trap configuration endpoint
-  app.post('/api/trap/config', (req, res) => {
-    const { isEnabled, port, maxTraps } = req.body;
-    
-    // Save the current state to check if we need to restart
-    const wasEnabled = trapConfig.isEnabled;
-    const oldPort = trapConfig.port;
-    
-    // Update configuration
-    if (isEnabled !== undefined) trapConfig.isEnabled = isEnabled;
-    if (port) trapConfig.port = parseInt(port);
-    if (maxTraps) trapConfig.maxTraps = parseInt(maxTraps);
-    
-    // Start, stop, or restart trap listener based on configuration changes
-    if (trapConfig.isEnabled) {
-      // If it was already enabled and the port changed, we need to restart
-      if (wasEnabled && oldPort !== trapConfig.port) {
-        stopTrapListener();
-        startTrapListener();
-      } 
-      // If it wasn't enabled before, start it
-      else if (!wasEnabled) {
-        startTrapListener();
-      }
-    } else if (wasEnabled) {
-      // If it was enabled and now should be disabled
-      stopTrapListener();
-    }
-    
-    res.json({ success: true, config: trapConfig });
-  });
-  
-  // Get trap results endpoint
-  app.get('/api/trap/results', (req, res) => {
-    const limit = parseInt(req.query.limit || '10');
-    // Return the most recent trap results
+  // Note: Trap port can't be changed at runtime,
+  // this would require server restart to take effect
+  if (port) {
+    trapConfig.port = port;
     res.json({ 
-      isListening: trapConfig.isEnabled,
+      success: true, 
       config: trapConfig,
-      results: receivedTraps.slice(0, limit) 
+      message: "Trap port configuration updated. Server restart required to apply changes."
     });
-  });
-  
-  // Start trap listener if enabled at startup
-  if (trapConfig.isEnabled) {
-    startTrapListener();
+  } else {
+    res.json({ success: true, config: trapConfig });
   }
+});
 
-app.listen(port, () => {
-  console.log(`SNMP Demo app listening at http://localhost:${port}`);
+// Socket.io connection handler
+io.on('connection', (socket) => {
+  console.log('New client connected');
+  
+  // Send trap history to newly connected client
+  socket.emit('trapHistory', trapHistory);
+  
+  socket.on('disconnect', () => {
+    console.log('Client disconnected');
+  });
+});
+
+server.listen(port, () => {
+  console.log(`SNMP App listening at http://localhost:${port}`);
+  console.log(`SNMP Trap Receiver listening on port ${trapConfig.port}`);
 });
