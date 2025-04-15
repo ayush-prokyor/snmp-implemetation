@@ -3,6 +3,8 @@ const http = require("http");
 const snmp = require("net-snmp");
 const socketIo = require("socket.io");
 const path = require("path");
+const multer = require("multer");
+const fs = require("fs");
 
 const app = express();
 const server = http.createServer(app);
@@ -42,6 +44,35 @@ const trapConfig = {
 
 // Store received traps
 const trapHistory = [];
+
+// Determine the runtime uploads directory
+const runtimeUploadsDir = process.pkg
+  ? path.join(process.cwd(), "uploads")
+  : path.join(__dirname, "uploads");
+
+// Ensure the directory exists before accessing it:
+if (!fs.existsSync(runtimeUploadsDir)) {
+  fs.mkdirSync(runtimeUploadsDir, { recursive: true });
+}
+
+app.use("/uploads", express.static(runtimeUploadsDir));
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: function (req, file, cb) {
+      const runtimeUploadsDir = process.pkg
+        ? path.join(process.cwd(), "uploads")
+        : path.join(__dirname, "uploads");
+      if (!fs.existsSync(runtimeUploadsDir)) {
+        fs.mkdirSync(runtimeUploadsDir, { recursive: true });
+      }
+      cb(null, runtimeUploadsDir);
+    },
+    filename: function (req, file, cb) {
+      cb(null, Date.now() + "-" + file.originalname);
+    },
+  }),
+});
 
 // Create SNMP session
 function createSession() {
@@ -554,6 +585,44 @@ app.post("/api/traps/config", (req, res) => {
   } else {
     res.json({ success: true, config: trapConfig });
   }
+});
+
+// HTTP POST API to receive an image from the HTTP client
+app.post("/api/upload-image", upload.single("image"), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: "No image file provided" });
+  }
+  res.json({ message: "Image uploaded successfully", file: req.file });
+});
+
+app.get("/api/images", (req, res) => {
+  const runtimeUploadsDir = process.pkg
+    ? path.join(process.cwd(), "uploads")
+    : path.join(__dirname, "uploads");
+
+  // Ensure the directory exists
+  if (!fs.existsSync(runtimeUploadsDir)) {
+    try {
+      fs.mkdirSync(runtimeUploadsDir, { recursive: true });
+    } catch (e) {
+      console.error("Error creating uploads directory:", e);
+      return res.status(500).json({ error: "Uploads folder not available" });
+    }
+  }
+
+  fs.readdir(runtimeUploadsDir, (err, files) => {
+    if (err) {
+      console.error("Error reading uploads directory:", err);
+      return res.status(500).json({ error: "Unable to scan uploads folder" });
+    }
+    // Optionally filter only for images:
+    const imageFiles = files.filter((file) =>
+      ["jpg", "jpeg", "png", "gif", "bmp", "webp"].some((ext) =>
+        file.toLowerCase().endsWith(ext)
+      )
+    );
+    res.json({ images: imageFiles });
+  });
 });
 
 // Socket.io connection handler

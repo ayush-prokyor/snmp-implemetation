@@ -19,5 +19,6 @@ COPY --from=builder /usr/src/app/app .
 
 EXPOSE 3000
 EXPOSE 161
+EXPOSE 16200
 
 CMD ["./app"]
