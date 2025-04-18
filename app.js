@@ -15,7 +15,7 @@ app.use(express.static('public'));
 // SNMP Agent Configuration
 const agentConfig = {
   host: '127.0.0.1',  // Replace with your SNMP agent IP
-  port: 161,          // Standard SNMP port
+  port: 16100,          // Standard SNMP port
   community: 'public' // Default community string
 };
 
@@ -63,13 +63,15 @@ app.get('/api/snmp/get', (req, res) => {
   ];
   
   const session = createSession();
+  console.log("get-cmd-config",agentConfig.community)
+  console.log("get-cmd-config",agentConfig.port)
   
   session.get(oids, (error, varbinds) => {
     if (error) {
       console.error(error);
       return res.status(500).json({ error: error.toString() });
     }
-    
+      console.log("varb",varbinds)
     const results = varbinds.map(varbind => {
       if (snmp.isVarbindError(varbind)) {
         return {
@@ -146,7 +148,8 @@ app.post('/api/snmp/set', (req, res) => {
         };
       }
     });
-    
+    console.log("comm",agentConfig.community)
+    console.log("set-req", results)
     res.json({ results });
     session.close();
   });
@@ -439,7 +442,7 @@ const trapCallback = function(error, trap) {
     console.error('Trap Error:', error.message);
     return;
   }
-
+  console.log("trap", trap)
   const now = new Date();
   const trapType = snmp.PduType[trap.pdu.type] || "Unknown";
   
@@ -454,7 +457,9 @@ const trapCallback = function(error, trap) {
     community: trap.community || 'N/A',
     pdu: {
       type: trapType,
-      enterprise: trap.pdu.enterprise ? trap.pdu.enterprise.join('.') : 'N/A',
+      enterprise: trap.pdu.enterprise 
+  ? (Array.isArray(trap.pdu.enterprise) ? trap.pdu.enterprise.join('.') : trap.pdu.enterprise) 
+  : 'N/A',
       varbinds: []
     }
   };
@@ -546,5 +551,6 @@ io.on('connection', (socket) => {
 
 server.listen(port, () => {
   console.log(`SNMP App listening at http://localhost:${port}`);
+  console.log(`Connected to SNMP agent at ${agentConfig.host}:${agentConfig.port}`);
   console.log(`SNMP Trap Receiver listening on port ${trapConfig.port}`);
 });
