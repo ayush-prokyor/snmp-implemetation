@@ -26,8 +26,8 @@ let pollingConfig = {
   isEnabled: false,
   interval: 5000, // Default polling interval in ms (5 seconds)
   type: "get", // Default polling type: 'get' or 'getbulk'
-  oids: ["1.3.6.1.2.1.1.1.0", "1.3.6.1.2.1.1.5.0"], // Default OIDs for GET
-  oid: "1.3.6.1.2.1.1", // Default OID for GETBULK
+  oids: ["1.3.6.1.4.1.50000.2.1", "1.3.6.1.4.1.50000.2.2"], // Default OIDs for GET
+  oid: "1.3.6.1.4.1.50000", // Default OID for GETBULK
   nonRepeaters: 0,
   maxRepetitions: 10,
 };
@@ -38,7 +38,7 @@ let pollingTimer = null;
 
 // Trap configuration
 const trapConfig = {
-  port: 16200,
+  port: 162,
   disableAuthorization: true,
 };
 
@@ -89,8 +89,8 @@ app.get("/", (req, res) => {
 // GET endpoint
 app.get("/api/snmp/get", (req, res) => {
   const oids = req.query.oids?.split(",") || [
-    "1.3.6.1.2.1.1.1.0", // System description
-    "1.3.6.1.2.1.1.5.0", // System name
+    "1.3.6.1.4.1.50000.2.1",
+    "1.3.6.1.4.1.50000.2.2",
   ];
 
   const session = createSession();
@@ -187,7 +187,7 @@ app.post("/api/snmp/set", (req, res) => {
 
 // GETBULK endpoint
 app.get("/api/snmp/getbulk", (req, res) => {
-  const oid = req.query.oid || "1.3.6.1.2.1.1"; // System MIB
+  const oid = req.query.oid || "1.3.6.1.4.1.50000"; // System MIB
   const nonRepeaters = parseInt(req.query.nonRepeaters || "0");
   const maxRepetitions = parseInt(req.query.maxRepetitions || "10");
 
@@ -250,7 +250,7 @@ app.get("/api/snmp/getbulk", (req, res) => {
 
 // WALK endpoint
 app.get("/api/snmp/walk", (req, res) => {
-  const oid = req.query.oid || "1.3.6.1.2.1.1"; // System MIB
+  const oid = req.query.oid || "1.3.6.1.4.1.50000"; // System MIB
   const session = createSession();
 
   const results = [];
