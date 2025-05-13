@@ -597,9 +597,18 @@
     </div>
 
     <div class="card">
+      <h2>Trap History</h2>
+      <pre id="data-list-container">No data yet.</pre>
+      <button onclick="clearDataList()" style="margin-top: 10px">
+        Clear Data
+      </button>
+    </div>
+
+    <div class="card">
       <h2>Image Gallery</h2>
       <div id="images-container"></div>
     </div>
+
     <footer>
       <p>&copy; 2025 SNMP Monitoring Dashboard</p>
     </footer>
@@ -1260,6 +1269,42 @@
           );
         }
       });
+
+      function displayDataList(data) {
+        const container = document.getElementById("data-list-container");
+        container.textContent = JSON.stringify(data, null, 2);
+        container.scrollTop = container.scrollHeight; // Scroll to the bottom
+      }
+
+      // add this listener for JSON data list updates:
+      socket.on("newDataList", (data) => {
+        const container = document.getElementById("data-list-container");
+        if (!container) {
+          console.error('Missing element with id "data-list-container"');
+          return;
+        }
+        fetch("/api/history")
+          .then((res) => res.json())
+          .then((result) => {
+            if (result.data) displayDataList(result.data);
+          });
+      });
+
+      function clearDataList() {
+        fetch("/api/history/clear", {
+          method: "POST",
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            showNotification("Data list cleared successfully!");
+            const container = document.getElementById("data-list-container");
+            container.textContent = "No data yet.";
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            showNotification("Failed to clear data list", "error");
+          });
+      }
     </script>
   </body>
 </html>

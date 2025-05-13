@@ -10,6 +10,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 const port = 3000;
+let jsonDataList = [];
 
 app.use(express.json());
 app.use(express.static("public"));
@@ -623,6 +624,27 @@ app.get("/api/images", (req, res) => {
     );
     res.json({ images: imageFiles });
   });
+});
+
+// HTTP POST API to receive a list of JSON objects
+app.post("/api/history", (req, res) => {
+  const dataList = req.body;
+  jsonDataList = jsonDataList.concat(dataList);
+
+  // emit new data to all connected clients
+  io.emit("newDataList", jsonDataList);
+
+  res.json({ success: true, data: jsonDataList });
+});
+
+// HTTP GET API to retrieve the stored JSON data list
+app.get("/api/history", (req, res) => {
+  res.json({ data: jsonDataList });
+});
+
+app.post("/api/history/clear", (req, res) => {
+  jsonDataList = [];
+  res.json({ success: true, message: "History cleared" });
 });
 
 // Socket.io connection handler
