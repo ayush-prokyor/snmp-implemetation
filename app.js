@@ -46,6 +46,16 @@ const trapConfig = {
 // Store received traps
 const trapHistory = [];
 
+// Logging middleware to print all incoming requests
+app.use((req, res, next) => {
+  const sourceIP =
+    req.headers["x-forwarded-for"] || req.connection.remoteAddress || req.ip;
+  console.log(
+    `[${new Date().toISOString()}] ${req.method} ${req.url} from ${sourceIP}`
+  );
+  next();
+});
+
 // Determine the runtime uploads directory
 const runtimeUploadsDir = process.pkg
   ? path.join(process.cwd(), "uploads")
@@ -593,6 +603,7 @@ app.post("/api/upload-image", upload.single("image"), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: "No image file provided" });
   }
+  console.log("Image uploaded:", req);
   res.json({ message: "Image uploaded successfully", file: req.file });
 });
 
