@@ -5,6 +5,7 @@ const socketIo = require("socket.io");
 const path = require("path");
 const multer = require("multer");
 const fs = require("fs");
+const util = require("util");
 
 const app = express();
 const server = http.createServer(app);
@@ -51,7 +52,11 @@ app.use((req, res, next) => {
   const sourceIP =
     req.headers["x-forwarded-for"] || req.connection.remoteAddress || req.ip;
   console.log(
-    `[${new Date().toISOString()}] ${req.method} ${req.url} from ${sourceIP}`
+    `[${new Date().toISOString()}] ${req.method} ${
+      req.url
+    } from ${sourceIP} headers: ${JSON.stringify(
+      req.headers
+    )} body: ${JSON.stringify(req.body)}`
   );
   next();
 });
@@ -500,6 +505,12 @@ const trapCallback = function (error, trap) {
     return;
   }
 
+  // Log the full trap object
+  console.log(
+    "Full trap received:",
+    util.inspect(trap, { depth: null, colors: true })
+  );
+
   const now = new Date();
   const trapType = snmp.PduType[trap.pdu.type] || "Unknown";
 
@@ -599,13 +610,34 @@ app.post("/api/traps/config", (req, res) => {
 });
 
 // HTTP POST API to receive an image from the HTTP client
-app.post("/api/upload-image", upload.single("image"), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: "No image file provided" });
+app.post(
+  "/api/upload-image",
+  (req, res, next) => {
+    upload.single("image")(req, res, function (err) {
+      if (err) {
+        console.error("Multer error:", err);
+        return res.status(500).json({ error: err.message });
+      }
+      if (!req.file) {
+        console.error("No file was attached to the 'image' field.");
+        return res.status(400).json({ error: "No image file provided" });
+      }
+      // Log the parsed file information
+      // console.log("Full Request:", req);
+      console.log("Request body:", req.body);
+      console.log("Multer parsed file:", req.file);
+      next();
+    });
+  },
+  (req, res) => {
+    if (!req.file) {
+      console.error("No file was attached to the 'image' field.");
+      return res.status(400).json({ error: "No image file provided" });
+    }
+    console.log("Image uploaded successfully.");
+    res.json({ message: "Image uploaded successfully", file: req.file });
   }
-  console.log("Image uploaded:", req);
-  res.json({ message: "Image uploaded successfully", file: req.file });
-});
+);
 
 app.get("/api/images", (req, res) => {
   const runtimeUploadsDir = process.pkg

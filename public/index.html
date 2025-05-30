@@ -727,16 +727,19 @@
       function performSet() {
         const oid = document.getElementById("set-oid").value;
         const type = document.getElementById("set-type").value;
-        const value = document.getElementById("set-value").value;
+        let value = document.getElementById("set-value").value;
         const resultElement = document.getElementById("set-result");
+
+        // If the type is integer, parse the value into an integer
+        if (type === "integer") {
+          value = parseInt(value, 10);
+        }
 
         resultElement.textContent = "Loading...";
 
         fetch("/api/snmp/set", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ oid, type, value }),
         })
           .then((response) => response.json())
